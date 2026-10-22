@@ -20,13 +20,18 @@ else()
   option(STLAM_BUILD_EXAMPLES "Build examples" OFF)
 endif()
 
+add_library(stlam_dev_flags INTERFACE)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  # Warnings
+  target_compile_options(stlam_dev_flags INTERFACE -Wall -Wextra -Werror -pedantic-errors)
+
+  # Sanitize
+  target_compile_options(stlam_dev_flags INTERFACE -g -D_GLIBCXX_DEBUG
+    -fno-omit-frame-pointer -fno-sanitize-recover=all -fsanitize=address,undefined)
+  target_link_options(stlam_dev_flags INTERFACE -fsanitize=address,undefined)
+endif()
+
 if(STLAM_BUILD_EXAMPLES)
   add_executable(onemax examples/onemax.cc)
-  target_link_libraries(onemax PRIVATE stlam::stlam)
-  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(onemax PRIVATE -O2 -g -pedantic-errors -Wall -Wextra
-      -Wpedantic -Werror -D_GLIBCXX_DEBUG -mpopcnt -fsanitize=address,undefined
-      -fno-omit-frame-pointer -fno-sanitize-recover=all)
-    target_link_options(onemax PRIVATE -fsanitize=address,undefined)
-  endif()
+  target_link_libraries(onemax PRIVATE stlam::stlam stlam_dev_flags)
 endif()

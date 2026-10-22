@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <random>
 #include <tuple>
+#include <utility>
 
 namespace stlam {
 
@@ -20,16 +21,14 @@ class SelfTuningLam {
     double cost;
   };
 
-  explicit SelfTuningLam(const Problem& problem, std::uint64_t seed)
+  SelfTuningLam(const Problem& problem, std::uint64_t seed)
       : problem_(problem), rng_(seed) {}
 
   [[nodiscard]] Result Run(std::size_t evaluations) {
-    assert(evaluations >= 100);
-
     // Self-tuning
-    const std::size_t& n = evaluations;
-    std::size_t m = TuningLength(n);
-    double alpha = TuneAlpha(n);
+    const std::size_t n = std::max(evaluations, kMinEvaluations);
+    const std::size_t m = TuningLength(n);
+    const double alpha = TuneAlpha(n);
     double accept_rate = InitialAcceptanceRate(n);
     auto [s, temperature, beta] = TuneTemperature(n, m, accept_rate);
 
@@ -70,7 +69,7 @@ class SelfTuningLam {
         temperature /= beta;
     }
 
-    return std::move(best_);
+    return best_;
   }
 
  private:
@@ -147,6 +146,7 @@ class SelfTuningLam {
     if (r.cost < best_.cost) best_ = r;
   }
 
+  static constexpr std::size_t kMinEvaluations = 100;
   const Problem& problem_;
   std::mt19937_64 rng_;
   std::uniform_real_distribution<double> uniform_{0.0, 1.0};

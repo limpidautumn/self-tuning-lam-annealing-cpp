@@ -32,7 +32,9 @@ class OneMax {
     return neighbor;
   }
 
-  double Cost(const Solution& solution) const { return solution.count(); }
+  double Cost(const Solution& solution) const {
+    return -static_cast<double>(solution.count());
+  }
 };
 
 int main() {
