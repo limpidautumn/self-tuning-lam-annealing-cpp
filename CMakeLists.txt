@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(self_tuning_lam_annealing VERSION 0.1.0 LANGUAGES CXX)
+project(self_tuning_lam_annealing VERSION 0.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -32,6 +32,8 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 if(STLAM_BUILD_EXAMPLES)
-  add_executable(onemax examples/onemax.cc)
-  target_link_libraries(onemax PRIVATE stlam::stlam stlam_dev_flags)
+  add_executable(onemax_copy examples/onemax/onemax_copy.cc)
+  add_executable(onemax_delta examples/onemax/onemax_delta.cc)
+  target_link_libraries(onemax_copy PRIVATE stlam::stlam stlam_dev_flags)
+  target_link_libraries(onemax_delta PRIVATE stlam::stlam stlam_dev_flags)
 endif()

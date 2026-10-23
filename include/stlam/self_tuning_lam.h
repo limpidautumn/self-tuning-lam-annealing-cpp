@@ -2,7 +2,6 @@
 #define STLAM_SELF_TUNING_LAM_H
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -12,19 +11,69 @@
 
 namespace stlam {
 
+using Rng = std::mt19937_64;
+
+// Raw solution with cached cost. Caller must keep them in sync.
+template <typename RawSolution>
+struct ScoredSolution {
+  RawSolution solution{};
+  double cost = 0.0;
+};
+
+// Common contract for problem implementations. The `raw_solution` and `cost` of
+// a `Solution` must always remain synchronized.
+// Implementations should first define:
+//   using Solution = stlam::ScoredSolution<RawSolution>;
+// All template parameters S below must be Solution (a ScoredSolution).
+class ProblemBase {
+ public:
+  // Returns a random initial solution with its cost set.
+  auto RandomSolution(Rng&) const = delete;
+
+  // Applies a random move and returns its undo token.
+  template <typename S>
+  auto Propose(S&, Rng&) const = delete;
+
+  // Consumes Propose's result for a tuning-phase move.
+  template <typename S, typename T>
+  void TuneAccept(S&, T&&) const {}
+
+  // Consumes Propose's result after an accepted move.
+  template <typename S, typename T>
+  void Accept(S&, T&&) const {};
+
+  // Consumes Propose's result after a rejected move and restores the state.
+  template <typename S, typename T>
+  void Reject(S&, T&&) const = delete;
+
+ protected:
+  ~ProblemBase() = default;
+};
+
+namespace internal {
+template <typename>
+inline constexpr bool is_scored_solution_v = false;
+template <typename RawS>
+inline constexpr bool is_scored_solution_v<ScoredSolution<RawS>> = true;
+}  // namespace internal
+
 template <typename Problem>
 class SelfTuningLam {
+  static_assert(std::is_base_of_v<ProblemBase, Problem>,
+                "Problem must derive from stlam::ProblemBase");
+  static_assert(internal::is_scored_solution_v<typename Problem::Solution>,
+                "Problem::Solution must be ScoredSolution<RawSolution>");
+
  public:
   using Solution = typename Problem::Solution;
-  struct Result {
-    Solution solution;
-    double cost;
-  };
 
   SelfTuningLam(const Problem& problem, std::uint64_t seed)
       : problem_(problem), rng_(seed) {}
 
-  [[nodiscard]] Result Run(std::size_t evaluations) {
+  // Algorithm 7. Runs the Self-Tuning Lam Annealing schedule and return the
+  // optimal solution found. `evaluations` is clamped to at least 100 so the
+  // tuning phase is non-empty.
+  [[nodiscard]] Solution Run(std::size_t evaluations) {
     // Self-tuning
     const std::size_t n = std::max(evaluations, kMinEvaluations);
     const std::size_t m = TuningLength(n);
@@ -43,14 +92,15 @@ class SelfTuningLam {
         static_cast<std::size_t>(0.65 * static_cast<double>(n));
 
     for (std::size_t i = m + 1; i <= n; ++i) {
-      Result s1 = MakeResult(problem_.RandomNeighbor(s.solution, rng_));
-
-      const double dc = s1.cost - s.cost;
-      if (dc <= 0 || uniform_(rng_) < std::exp(-dc / temperature)) {
-        s = std::move(s1);
+      const double c0 = s.cost;
+      auto p = problem_.Propose(s, rng_);
+      const double& c1 = s.cost;
+      if (c1 <= c0 || uniform_(rng_) < std::exp(-(c1 - c0) / temperature)) {
+        problem_.Accept(s, std::move(p));
         accept_rate = (1.0 - alpha) * accept_rate + alpha;
         Consider(s);
       } else {
+        problem_.Reject(s, std::move(p));
         accept_rate *= 1.0 - alpha;
       }
 
@@ -63,20 +113,21 @@ class SelfTuningLam {
         lam_rate = 0.44;
       }
 
-      if (accept_rate > lam_rate)
+      if (accept_rate > lam_rate) {
         temperature *= beta;
-      else
+      } else {
         temperature /= beta;
+      }
     }
 
-    return best_;
+    return std::move(best_);
   }
 
  private:
-  Result MakeResult(Solution s) {
-    double c = problem_.Cost(s);
-    return Result{std::move(s), c};
-  }
+  struct Tuned {
+    Solution solution;
+    double t0, beta;
+  };
 
   // Algorithm 3.
   static std::size_t TuningLength(std::size_t n) {
@@ -94,7 +145,6 @@ class SelfTuningLam {
   }
 
   // Algorithm 6.
-  using Tuned = std::tuple<Result, double, double>;
   Tuned TuneTemperature(std::size_t n, std::size_t m, double initial_rate) {
     const bool long_run = n >= 10000u;
     const double& zeta1 = long_run ? kZetaAt0p001 : kZetaAt0p01;
@@ -104,18 +154,20 @@ class SelfTuningLam {
     double sum = 0.0;           // SumOfDifferences in paper
     std::size_t diff = 0;       // k in paper
     std::size_t non_worse = 0;  // d in paper
-    Result s = MakeResult(problem_.RandomSolution(rng_));
+    Solution s = problem_.RandomSolution(rng_);
     best_ = s;  // Initialize the optimal solution and cost.
     for (std::size_t i = 1; i <= m; ++i) {
-      Result s1 = MakeResult(problem_.RandomNeighbor(s.solution, rng_));
-      if (s1.cost != s.cost) {
-        sum += std::abs(s1.cost - s.cost);
+      const double c0 = s.cost;
+      auto p = problem_.Propose(s, rng_);
+      const double c1 = s.cost;
+      if (c1 != c0) {
+        sum += std::abs(c1 - c0);
         diff += 1;
       }
-      if (s1.cost <= s.cost) {
+      if (c1 <= c0) {
         non_worse += 1;
       }
-      s = std::move(s1);
+      problem_.TuneAccept(s, p);
       Consider(s);
     }
 
@@ -142,15 +194,11 @@ class SelfTuningLam {
     return {std::move(s), t0, beta};
   }
 
-  void Consider(const Result& r) {
+  void Consider(const Solution& r) {
     if (r.cost < best_.cost) best_ = r;
   }
 
   static constexpr std::size_t kMinEvaluations = 100;
-  const Problem& problem_;
-  std::mt19937_64 rng_;
-  std::uniform_real_distribution<double> uniform_{0.0, 1.0};
-  Result best_;
 
   // Table 1.
   static constexpr double kLambdaAt0p001 = 0x1.f427ebf8a5f9bp-1;  // λ_0.001
@@ -161,6 +209,96 @@ class SelfTuningLam {
   static constexpr double kZetaAt0p002 = 0x1.0afd324bcab8ap-2;    // ζ_0.002
   static constexpr double kZetaAt0p01 = 0x1.84df5607ce4e2p-3;     // ζ_0.01
   static constexpr double kZetaAt0p02 = 0x1.6303fb1d89265p-3;     // ζ_0.02
+
+  const Problem& problem_;
+  Rng rng_;
+  std::uniform_real_distribution<double> uniform_{0.0, 1.0};
+  Solution best_;
+};
+
+// CRTP base for copy-neighbor problems.
+// Derived must define:
+//   using Solution = stlam::ScoredSolution<Raw>;
+//   Solution RandomSolution(Rng&) const;
+//   void RandomNeighbor(Solution&, Rng&) const;  // mutates and updates cost.
+// and keep raw_solution/cost synchronized.
+template <typename Derived>
+class CopyNeighborProblem : public ProblemBase {
+ public:
+  auto RandomSolution(Rng&) const = delete;
+
+  template <typename S>
+  void RandomNeighbor(S&, Rng&) const = delete;
+
+ protected:
+  ~CopyNeighborProblem() = default;
+
+ private:
+  friend class SelfTuningLam<Derived>;
+
+  template <typename S>
+  S Propose(S& s, Rng& rng) const {
+    S s0 = s;
+    self().RandomNeighbor(s, rng);
+    return s0;
+  }
+
+  template <typename S, typename T>
+  void TuneAccept(S&, T&&) const {}
+
+  template <typename S, typename T>
+  void Accept(S&, T&&) const {};
+
+  template <typename S>
+  void Reject(S& s, S&& s0) const {
+    s = std::move(s0);
+  }
+
+  const Derived& self() const { return static_cast<const Derived&>(*this); }
+};
+
+// CRTP base for delta-neighbor problems.
+// Derived must define:
+//   using Solution = stlam::ScoredSolution<Raw>;
+//   Solution RandomSolution(Rng&) const;
+//   T ApplyRandomMove(Solution&, Rng&) const;  // mutates, updates cost,
+//                                              // returns undo token.
+//   void UndoMove(Solution&, const T&) const;  // restores state and cost.
+// and keep raw_solution/cost synchronized.
+template <typename Derived>
+class DeltaNeighborProblem : public ProblemBase {
+ public:
+  auto RandomSolution(Rng&) const = delete;
+
+  template <typename S>
+  auto ApplyRandomMove(S&, Rng&) const = delete;
+
+  template <typename S, typename T>
+  void UndoMove(S&, const T&) const = delete;
+
+ protected:
+  ~DeltaNeighborProblem() = default;
+
+ private:
+  friend class SelfTuningLam<Derived>;
+
+  template <typename S>
+  auto Propose(S& s, Rng& rng) const {
+    return self().ApplyRandomMove(s, rng);
+  }
+
+  template <typename S, typename T>
+  void TuneAccept(S&, T&&) const {}
+
+  template <typename S, typename T>
+  void Accept(S&, T&&) const {};
+
+  template <typename S, typename T>
+  void Reject(S& s, T&& t) const {
+    self().UndoMove(s, std::move(t));
+  }
+
+  const Derived& self() const { return static_cast<const Derived&>(*this); }
 };
 
 }  // namespace stlam
