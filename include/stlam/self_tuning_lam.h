@@ -22,7 +22,7 @@ using Rng = std::mt19937_64;
 ///
 /// The objective is minimized. The `solution` member stores the RawSolution;
 /// implementations must update it and `cost` together.
-/// @tparam RawSolution Problem-specific representation of a candidate.
+/// @tparam RawSolution Candidate type; must be default-constructible.
 template <typename RawSolution>
 struct ScoredSolution {
   RawSolution solution{};  ///< Problem-specific candidate.
@@ -323,7 +323,6 @@ class SelfTuningLam {
 /// to observe accepted moves. They must remain public.
 ///
 /// @tparam Derived Concrete problem type.
-/// @note `Solution` must be copy-constructible and move-assignable.
 template <typename Derived>
 class CopyNeighborProblem : public ProblemBase {
  public:
@@ -372,7 +371,7 @@ class CopyNeighborProblem : public ProblemBase {
 ///   Returns a random initial candidate with `cost` set.
 /// - `T ApplyRandomMove(Solution&, Rng&) const`
 ///   Applies a random move, updates `cost`, and returns an undo token.
-/// - `void UndoMove(Solution&, const T&) const`
+/// - `void UndoMove(Solution&, T&&) const`
 ///   Reverses the move using the token and restores `cost`.
 ///
 /// `ApplyRandomMove` and `UndoMove` must leave `solution` and `cost`
@@ -416,7 +415,7 @@ class DeltaNeighborProblem : public ProblemBase {
   /// @brief Deleted; derived classes must implement this method.
   /// @note Must undo the move and restore the cost.
   template <typename S, typename T>
-  void UndoMove(S&, const T&) const = delete;
+  void UndoMove(S&, T&&) const = delete;
 
  protected:
   /// @brief Protected to prevent deletion through this CRTP base.

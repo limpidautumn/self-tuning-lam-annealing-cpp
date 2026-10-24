@@ -59,7 +59,7 @@ class OneMax : public stlam::DeltaNeighborProblem<OneMax> {
   /// @brief Flips the bit at `index` back, restoring the previous cost.
   /// @param current Solution to restore.
   /// @param index Index returned by `ApplyRandomMove`.
-  void UndoMove(Solution& current, const std::size_t& index) const {
+  void UndoMove(Solution& current, std::size_t&& index) const {
     Flip(current, index);
   }
 
@@ -77,6 +77,7 @@ class OneMax : public stlam::DeltaNeighborProblem<OneMax> {
   }
 };
 
+/// @brief Runs the delta-neighbor OneMax example.
 int main() {
   OneMax problem;
   stlam::SelfTuningLam<OneMax> annealer(problem, seed);

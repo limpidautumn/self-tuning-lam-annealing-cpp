@@ -66,6 +66,7 @@ class OneMax : public stlam::CopyNeighborProblem<OneMax> {
   }
 };
 
+/// @brief Runs the copy-neighbor OneMax example.
 int main() {
   OneMax problem;
   stlam::SelfTuningLam<OneMax> annealer(problem, seed);
