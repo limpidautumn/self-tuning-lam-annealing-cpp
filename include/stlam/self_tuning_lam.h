@@ -1,3 +1,6 @@
+/// @file
+/// @brief Self-Tuning Lam annealing schedule.
+
 #ifndef STLAM_SELF_TUNING_LAM_H
 #define STLAM_SELF_TUNING_LAM_H
 
@@ -9,55 +12,116 @@
 #include <type_traits>
 #include <utility>
 
+/// @brief Self-Tuning Lam annealing.
 namespace stlam {
 
+/// @brief Random engine used by the library.
 using Rng = std::mt19937_64;
 
-// Raw solution with cached cost. Caller must keep them in sync.
+/// @brief A raw solution with its cached cost.
+///
+/// The objective is minimized. The `solution` member stores the RawSolution;
+/// implementations must update it and `cost` together.
+/// @tparam RawSolution Problem-specific representation of a candidate.
 template <typename RawSolution>
 struct ScoredSolution {
-  RawSolution solution{};
-  double cost = 0.0;
+  RawSolution solution{};  ///< Problem-specific candidate.
+  double cost = 0.0;       ///< Cached objective value; lower is better.
 };
 
-// Common contract for problem implementations.
-// Implementations should first define:
-//   using Solution = stlam::ScoredSolution<RawSolution>;
-// All template parameters S below must be Solution (a ScoredSolution). The
-// `raw_solution` and `cost` of a Solution must always remain synchronized by
-// the implementation. Derived methods must be public.
+/// @brief Base interface for user-defined optimization problems.
+///
+/// Serves as a type constraint for `SelfTuningLam`. Derived classes must
+/// implement the following public interface:
+///
+/// - `using Solution = stlam::ScoredSolution<RawSolution>;`:
+///   Problem-specific scored solution type.
+///
+/// - `Solution RandomSolution(Rng&) const`:
+///   Returns a valid initial candidate with its cost correctly evaluated.
+///
+/// - `Token Propose(Solution&, Rng&) const`:
+///   Mutates the solution in-place to generate a neighbor and returns an
+///   opaque undo token. `Token` is implementation-defined: it may be a saved
+///   solution, a move index, or any value that can undo the move.
+///
+/// - `void Reject(Solution&, Token&&) const`:
+///   Restores the solution to its pre-Propose state using the token.
+///
+/// - `void Accept(Solution&, Token&&) const` (optional):
+///   Consumes the token after an accepted move. Defaults to a no-op.
+///
+/// - `void TuneAccept(Solution&, Token&&) const` (optional):
+///   Consumes the token during the temperature tuning. Defaults to a no-op.
+///
+/// `Propose` returns one token per call. It is passed to exactly one of
+/// `Reject`, `Accept`, or `TuneAccept`, and must not be used afterwards.
+/// `RandomSolution` must set `cost`; `Propose` and `Reject` must keep
+/// `Solution::solution` and `Solution::cost` synchronized.
 class ProblemBase {
  public:
-  // Returns a random initial solution with its cost set.
+  /// @brief Scored solution type used by the problem.
+  /// @note Defaults to `void`; derived problems must provide this type.
+  using Solution = void;
+
+  /// @brief Creates a random initial solution with its cost set.
+  /// @note Deleted here; derived problems must provide this method.
   auto RandomSolution(Rng&) const = delete;
 
-  // Applies a random move and returns its undo token.
+  /// @brief Applies a random move and returns its undo token.
+  /// @tparam S ScoredSolution type.
   template <typename S>
   auto Propose(S&, Rng&) const = delete;
 
-  // Consumes Propose's result for a tuning-phase move.
+  /// @brief Consumes a token during temperature tuning.
+  /// @tparam S ScoredSolution type.
+  /// @tparam T Undo-token type.
+  /// @note Defaults to a no-op.
   template <typename S, typename T>
   void TuneAccept(S&, T&&) const {}
 
-  // Consumes Propose's result after an accepted move.
+  /// @brief Consumes a token when accepted during annealing.
+  /// @tparam S ScoredSolution type.
+  /// @tparam T Undo-token type.
+  /// @note Defaults to a no-op.
   template <typename S, typename T>
   void Accept(S&, T&&) const {}
 
-  // Consumes Propose's result after a rejected move and restores the state.
+  /// @brief Consumes a token when rejected and restores the solution.
+  /// @tparam S ScoredSolution type.
+  /// @tparam T Undo-token type.
+  /// @note Deleted here; derived problems must provide this method.
   template <typename S, typename T>
   void Reject(S&, T&&) const = delete;
 
  protected:
+  /// @brief Protected to prevent deletion through this base.
   ~ProblemBase() = default;
 };
 
+/// @brief Implementation details; not part of the public API.
 namespace internal {
+
+/// @brief Detects `ScoredSolution` specializations.
+/// @tparam T Candidate solution type.
 template <typename>
 inline constexpr bool is_scored_solution_v = false;
+
+/// @brief Detects `ScoredSolution` specializations.
+/// @tparam RawS Candidate solution type.
 template <typename RawS>
 inline constexpr bool is_scored_solution_v<ScoredSolution<RawS>> = true;
+
 }  // namespace internal
 
+/// @brief The Self-Tuning Lam annealing schedule.
+///
+/// Tunes the phase length, EMA rate, initial acceptance rate, and temperature
+/// schedule (Algorithms 3-6), then anneals while tracking the target Lam
+/// acceptance rate (Algorithm 7).
+///
+/// @tparam Problem Problem type derived from `ProblemBase`.
+/// @see https://doi.org/10.3390/app11219828
 template <typename Problem>
 class SelfTuningLam {
   static_assert(std::is_base_of_v<ProblemBase, Problem>,
@@ -66,14 +130,23 @@ class SelfTuningLam {
                 "Problem::Solution must be ScoredSolution<RawSolution>");
 
  public:
+  /// @brief Solution type used by `Problem`.
   using Solution = typename Problem::Solution;
 
+  /// @brief Creates an annealer for `problem`.
+  /// @param problem Problem instance; stored by reference and must outlive this
+  /// annealer.
+  /// @param seed Seed for the internal random engine.
   SelfTuningLam(const Problem& problem, std::uint64_t seed)
       : problem_(problem), rng_(seed) {}
 
-  // Algorithm 7. Runs the Self-Tuning Lam Annealing schedule and returns the
-  // best solution found. `evaluations` is clamped to at least 100 so the tuning
-  // phase is non-empty.
+  /// @brief Algorithm 7. Runs the schedule.
+  ///
+  /// The first M evaluations form the tuning walk; the remaining
+  /// evaluations run the annealing loop.
+  ///
+  /// @param evaluations Evaluation budget; clamped to at least 100.
+  /// @return Best solution found.
   [[nodiscard]] Solution Run(std::size_t evaluations) {
     // Self-tuning
     const std::size_t n = std::max(evaluations, kMinEvaluations);
@@ -125,28 +198,42 @@ class SelfTuningLam {
   }
 
  private:
+  /// @brief Output of `TuneTemperature`.
   struct Tuned {
-    Solution solution;
-    double t0;
-    double beta;
+    Solution solution;  ///< Solution at the end of the tuning walk.
+    double t0;          ///< Initial temperature.
+    double beta;        ///< Multiplicative temperature change per step.
   };
 
-  // Algorithm 3.
+  /// @brief Algorithm 3. Computes the tuning-phase length M.
+  /// @param n Run length N.
   static std::size_t TuningLength(std::size_t n) {
     return (n >= 10000u) ? n / 1000 : n / 100;
   }
 
-  // Algorithm 4.
+  /// @brief Algorithm 4. Computes the EMA learning rate alpha.
+  /// @param n Run length N.
   static double TuneAlpha(std::size_t n) {
     return std::min(2.0 / (0.01 * static_cast<double>(n) + 1.0), 0.2);
   }
 
-  // Algorithm 5.
+  /// @brief Algorithm 5. Selects the initial acceptance rate.
+  /// @param n Run length N.
   static double InitialAcceptanceRate(std::size_t n) {
     return (n >= 10000u) ? kLambdaAt0p001 : kLambdaAt0p01;
   }
 
-  // Algorithm 6.
+  /// @brief Algorithm 6. Tunes the initial temperature and temperature change
+  /// factor.
+  ///
+  /// Performs a random walk of `m` moves, then solves for T0 and beta from the
+  /// observed cost differences and non-worsening move count.
+  ///
+  /// @param n Run length N.
+  /// @param m Tuning walk length M.
+  /// @param initial_rate Initial acceptance rate.
+  /// @return Solution at the end of the walk, T0, and beta.
+  /// @note Also initializes `best_`; `Consider(s)` updates it during the walk.
   Tuned TuneTemperature(std::size_t n, std::size_t m, double initial_rate) {
     const bool long_run = n >= 10000u;
     const double& zeta1 = long_run ? kZetaAt0p001 : kZetaAt0p01;
@@ -157,7 +244,7 @@ class SelfTuningLam {
     std::size_t diff = 0;       // k in paper
     std::size_t non_worse = 0;  // d in paper
     Solution s = problem_.RandomSolution(rng_);
-    best_ = s;  // Initialize the optimal solution and cost.
+    best_ = s;  // Initialize best_ to the initial solution.
     for (std::size_t i = 1; i <= m; ++i) {
       const double c0 = s.cost;
       auto p = problem_.Propose(s, rng_);
@@ -169,7 +256,7 @@ class SelfTuningLam {
       if (c1 <= c0) {
         non_worse += 1;
       }
-      problem_.TuneAccept(s, p);
+      problem_.TuneAccept(s, std::move(p));
       Consider(s);
     }
 
@@ -196,10 +283,12 @@ class SelfTuningLam {
     return {std::move(s), t0, beta};
   }
 
-  void Consider(const Solution& r) {
-    if (r.cost < best_.cost) best_ = r;
+  /// @brief Updates `best_` if `s` has a lower cost.
+  void Consider(const Solution& s) {
+    if (s.cost < best_.cost) best_ = s;
   }
 
+  /// @brief Minimum evaluation budget; keeps the tuning walk non-empty.
   static constexpr std::size_t kMinEvaluations = 100;
 
   // Table 1.
@@ -218,17 +307,34 @@ class SelfTuningLam {
   Solution best_;
 };
 
-// CRTP base for copy-neighbor problems.
-// Derived must define these public methods:
-//   using Solution = stlam::ScoredSolution<Raw>;
-//   Solution RandomSolution(Rng&) const;
-//   void RandomNeighbor(Solution&, Rng&) const;  // mutates and updates cost.
-// and keep raw_solution/cost synchronized.
+/// @brief CRTP helper for problems that use copy-and-restore neighbors.
+///
+/// `Derived` must provide these public members:
+/// - `using Solution = stlam::ScoredSolution<RawSolution>;`
+/// - `Solution RandomSolution(Rng&) const`
+///   Returns a random initial candidate with `cost` set.
+/// - `void RandomNeighbor(Solution&, Rng&) const`
+///   Replaces the candidate with a random neighbor and updates `cost`.
+///
+/// `RandomNeighbor` may recompute `cost` from scratch or update it
+/// incrementally, but must leave `solution` and `cost` synchronized.
+///
+/// `TuneAccept` and `Accept` are inherited no-ops; override them in `Derived`
+/// to observe accepted moves. They must remain public.
+///
+/// @tparam Derived Concrete problem type.
+/// @note `Solution` must be copy-constructible and move-assignable.
 template <typename Derived>
 class CopyNeighborProblem : public ProblemBase {
  public:
+  /// @brief Deleted; derived classes must implement this method.
   auto RandomSolution(Rng&) const = delete;
 
+  /// @brief Copies `s`, applies a random neighbor, and returns the snapshot.
+  /// @tparam S ScoredSolution type.
+  /// @param s Solution mutated into a neighbor.
+  /// @param rng Random engine.
+  /// @return Pre-move snapshot, used by `Reject` to restore `s`.
   template <typename S>
   S Propose(S& s, Rng& rng) const {
     S s0 = s;
@@ -236,51 +342,84 @@ class CopyNeighborProblem : public ProblemBase {
     return s0;
   }
 
+  /// @brief Restores `s` from the snapshot `s0`.
+  /// @tparam S ScoredSolution type.
+  /// @param s Solution to restore.
+  /// @param s0 Snapshot returned by `Propose`.
   template <typename S>
   void Reject(S& s, S&& s0) const {
     s = std::move(s0);
   }
 
+  /// @brief Deleted; derived classes must implement this method.
+  /// @note Must mutate the solution and update its cost.
   template <typename S>
   void RandomNeighbor(S&, Rng&) const = delete;
 
  protected:
+  /// @brief Protected to prevent deletion through this CRTP base.
   ~CopyNeighborProblem() = default;
 
  private:
   const Derived& self() const { return static_cast<const Derived&>(*this); }
 };
 
-// CRTP base for delta-neighbor problems.
-// Derived must define these public methods:
-//   using Solution = stlam::ScoredSolution<Raw>;
-//   Solution RandomSolution(Rng&) const;
-//   T ApplyRandomMove(Solution&, Rng&) const;  // mutates, updates cost,
-//                                              // returns undo token.
-//   void UndoMove(Solution&, T&&) const;  // restores state and cost.
-// and keep raw_solution/cost synchronized.
+/// @brief CRTP helper for problems that use apply-and-undo neighbors.
+///
+/// `Derived` must provide these public members:
+/// - `using Solution = stlam::ScoredSolution<RawSolution>;`
+/// - `Solution RandomSolution(Rng&) const`
+///   Returns a random initial candidate with `cost` set.
+/// - `T ApplyRandomMove(Solution&, Rng&) const`
+///   Applies a random move, updates `cost`, and returns an undo token.
+/// - `void UndoMove(Solution&, const T&) const`
+///   Reverses the move using the token and restores `cost`.
+///
+/// `ApplyRandomMove` and `UndoMove` must leave `solution` and `cost`
+/// synchronized. The token was forwarded as an rvalue, so `T` may be move-only.
+///
+/// `TuneAccept` and `Accept` are inherited no-ops; override them in `Derived`
+/// to observe accepted moves. They must remain public.
+///
+/// @tparam Derived Concrete problem type.
 template <typename Derived>
 class DeltaNeighborProblem : public ProblemBase {
  public:
+  /// @brief Deleted; derived classes must implement this method.
   auto RandomSolution(Rng&) const = delete;
 
+  /// @brief Applies a random move and returns its undo token.
+  /// @tparam S ScoredSolution type.
+  /// @param s Solution to mutate.
+  /// @param rng Random engine.
+  /// @return An undo token for the mutation.
   template <typename S>
   auto Propose(S& s, Rng& rng) const {
     return self().ApplyRandomMove(s, rng);
   }
 
+  /// @brief Undoes the move represented by the token.
+  /// @tparam S ScoredSolution type.
+  /// @tparam T Custom type for token.
+  /// @param s Solution to restore.
+  /// @param t Token returned by `Propose`.
   template <typename S, typename T>
   void Reject(S& s, T&& t) const {
     self().UndoMove(s, std::move(t));
   }
 
+  /// @brief Deleted; derived classes must implement this method.
+  /// @note Must mutate the solution and update its cost.
   template <typename S>
   auto ApplyRandomMove(S&, Rng&) const = delete;
 
+  /// @brief Deleted; derived classes must implement this method.
+  /// @note Must undo the move and restore the cost.
   template <typename S, typename T>
   void UndoMove(S&, const T&) const = delete;
 
  protected:
+  /// @brief Protected to prevent deletion through this CRTP base.
   ~DeltaNeighborProblem() = default;
 
  private:
