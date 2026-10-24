@@ -42,14 +42,12 @@ class OneMax : public stlam::DeltaNeighborProblem<OneMax> {
 
  private:
   void Flip(Solution& s, std::size_t i) const {
-    auto b = s.solution[i];
-    if (b == true) {
+    if (s.solution[i]) {
       s.cost -= kBitContribution;
-      b = false;
-    } else if (b == false) {
+    } else {
       s.cost += kBitContribution;
-      b = true;
     }
+    s.solution[i].flip();
   }
 };
 
