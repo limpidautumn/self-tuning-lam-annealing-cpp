@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(self_tuning_lam_annealing VERSION 0.0.0 LANGUAGES CXX)
+project(self_tuning_lam_annealing VERSION 0.1.0 LANGUAGES CXX)
 
 # Disable compiler-specific extensions.
 set(CMAKE_CXX_EXTENSIONS OFF)
