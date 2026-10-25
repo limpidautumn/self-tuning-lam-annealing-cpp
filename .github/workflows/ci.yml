@@ -1,0 +1,40 @@
+name: ci
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-doxygen
+
+      - name: Configure
+        run: |
+          for _ in 1 2 3; do
+            rm -rf build
+            cmake -S . -B build -DSTLAM_BUILD_DOCS=ON && exit 0
+            sleep 5
+          done
+          exit 1
+
+      - name: Build examples
+        run: cmake --build build --parallel
+
+      - name: Build docs
+        run: cmake --build build --target stlam_docs
+
+  cmake-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-gersemi
+      - name: Check CMake formatting
+        run: gersemi --check .

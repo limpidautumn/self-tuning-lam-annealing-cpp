@@ -1,0 +1,53 @@
+<!-- KaTeX -->
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.47/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.47/dist/contrib/auto-render.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {
+          left: "\\[",
+          right: "\\]",
+          display: true,
+        },
+        {
+          left: "\\(",
+          right: "\\)",
+          display: false,
+        },
+      ],
+      ignoredClasses: ["fragment", "line", "tt"],
+      throwOnError: false,
+    });
+  });
+</script>
+
+<!-- Doxygen Awesome -->
+<script type="text/javascript" src="$relpath^doxygen-awesome-darkmode-toggle.js"></script>
+<script type="text/javascript">
+  DoxygenAwesomeDarkModeToggle.init();
+</script>
+
+<script type="text/javascript" src="$relpath^doxygen-awesome-fragment-copy-button.js"></script>
+<script type="text/javascript">
+  DoxygenAwesomeFragmentCopyButton.init();
+</script>
+
+<script type="text/javascript" src="$relpath^doxygen-awesome-paragraph-link.js"></script>
+<script type="text/javascript">
+  DoxygenAwesomeParagraphLink.init();
+</script>
+
+<script type="text/javascript" src="$relpath^doxygen-awesome-interactive-toc.js"></script>
+<script type="text/javascript">
+  DoxygenAwesomeInteractiveToc.init();
+</script>
+
+<script type="text/javascript" src="$relpath^doxygen-awesome-tabs.js"></script>
+<script type="text/javascript">
+  DoxygenAwesomeTabs.init();
+</script>
+
+</body>
+
+</html>
