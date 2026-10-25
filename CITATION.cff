@@ -1,0 +1,30 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: self-tuning-lam-annealing-cpp
+message: >-
+  If you use this software, please cite the paper describing
+  the Self-Tuning Lam annealing schedule.
+type: software
+authors:
+  - given-names: Taoran
+    family-names: Geng
+    email: limpidautumn@algo-x.cn
+repository-code: 'https://github.com/limpidautumn/self-tuning-lam-annealing-cpp'
+license: MIT
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Cicirello
+      given-names: Vincent A.
+  title: "Self-Tuning Lam Annealing: Learning Hyperparameters While Problem Solving"
+  journal: "Applied Sciences"
+  volume: 11
+  issue: 21
+  year: 2021
+  month: 11
+  doi: "10.3390/app11219828"
+  url: "https://www.cicirello.org/publications/applsci-11-09828.pdf"
+  number: 9828
+  pages: 37

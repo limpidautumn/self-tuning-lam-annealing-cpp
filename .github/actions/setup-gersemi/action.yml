@@ -1,0 +1,15 @@
+name: Setup gersemi
+description: Install the gersemi CMake formatter.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.13"
+
+    - name: Install gersemi
+      shell: bash
+      run: |
+        python -m pip install --disable-pip-version-check gersemi==0.29.2
+        gersemi --version
