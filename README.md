@@ -4,6 +4,8 @@ A C++ implementation of Cicirello's (2021) Self-Tuning Lam annealing strategy.
 
 Paper: [DOI:10.3390/app11219828](https://doi.org/10.3390/app11219828) | [Cicirello's Website](https://www.cicirello.org/publications/cicirello2021applsci.html)
 
+[English](README.md) | [中文](README.zh.md)
+
 ## Self-Tuning Lam Annealing Strategy
 
 Self-Tuning Lam is an adaptive simulated annealing strategy proposed by Cicirello (2021) that builds on Modified Lam.
@@ -72,7 +74,7 @@ target_link_libraries(my_app PRIVATE stlam::stlam)
 
 ## Usage
 
-<!-- For more details, refer to the API documentation. -->
+For more details, refer to the [API documentation](https://limpidautumn.github.io/self-tuning-lam-annealing-cpp/latest/).
 
 ### Solver
 
@@ -185,6 +187,6 @@ MIT License.
 
 If you use this software in academic work, please cite:
 
-Vincent A. Cicirello. *Self-Tuning Lam Annealing: Learning Hyperparameters While Problem Solving*. Applied Sciences, 11(21):9828, 2021. <https://doi.org/10.3390/app11219828>
+Vincent A. Cicirello. _Self-Tuning Lam Annealing: Learning Hyperparameters While Problem Solving_. Applied Sciences, 11(21):9828, 2021. <https://doi.org/10.3390/app11219828>
 
 Or use [BibTeX](https://www.cicirello.org/publications/cicirello2021applsci.bib).

@@ -4,6 +4,8 @@ Cicirello (2021) 自整定 Lam 退火策略的 C++ 实现。
 
 论文: [DOI:10.3390/app11219828](https://doi.org/10.3390/app11219828) | [Cicirello Website](https://www.cicirello.org/publications/cicirello2021applsci.html)
 
+[English](README.md) | [中文](README.zh.md)
+
 ## Self-Tuning Lam 退火策略
 
 Self-Tuning Lam 是 Cicirello (2021) 在 Modified Lam 基础上提出的一种自适应模拟退火策略。
@@ -72,7 +74,7 @@ target_link_libraries(my_app PRIVATE stlam::stlam)
 
 ## 使用方法
 
-<!-- 更多细节请参考 API 文档。 -->
+更多细节请参考 [API 文档](https://limpidautumn.github.io/self-tuning-lam-annealing-cpp/latest/)。
 
 ### 求解器
 
@@ -177,6 +179,6 @@ MIT License.
 
 若在学术工作中使用，请引用：
 
-Vincent A. Cicirello. *Self-Tuning Lam Annealing: Learning Hyperparameters While Problem Solving*. Applied Sciences, 11(21):9828, 2021. <https://doi.org/10.3390/app11219828>
+Vincent A. Cicirello. _Self-Tuning Lam Annealing: Learning Hyperparameters While Problem Solving_. Applied Sciences, 11(21):9828, 2021. <https://doi.org/10.3390/app11219828>
 
 或使用 [BibTeX](https://www.cicirello.org/publications/cicirello2021applsci.bib)。
