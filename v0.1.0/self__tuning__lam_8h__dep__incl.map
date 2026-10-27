@@ -1,0 +1,7 @@
+<map id="include/stlam/self_tuning_lam.h" name="include/stlam/self_tuning_lam.h">
+<area shape="rect" id="Node000001" title="Self&#45;Tuning Lam annealing schedule." alt="" coords="148,5,286,50"/>
+<area shape="rect" id="Node000002" href="$onemax__copy_8cc.html" title="OneMax solved with copy&#45;and&#45;restore neighbors." alt="" coords="5,98,205,143"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="181,59,133,100,130,95,176,61"/>
+<area shape="rect" id="Node000003" href="$onemax__delta_8cc.html" title="OneMax solved with apply&#45;and&#45;undo neighbors." alt="" coords="229,98,429,143"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="256,57,305,98,300,97,255,62"/>
+</map>

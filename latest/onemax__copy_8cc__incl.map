@@ -1,0 +1,27 @@
+<map id="examples/onemax/onemax_copy.cc" name="examples/onemax/onemax_copy.cc">
+<area shape="rect" id="Node000001" title="OneMax solved with copy&#45;and&#45;restore neighbors." alt="" coords="103,5,302,50"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,98,64,126"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="157,53,77,93,74,89,159,48"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="9,174,78,201"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="183,52,69,165,66,161,179,48"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="103,174,168,201"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="196,49,149,161,145,158,191,51"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="494,98,573,126"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="290,48,481,96,476,98,290,53"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="192,174,264,201"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="208,48,226,159,221,157,204,52"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="598,174,658,201"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="289,48,360,69,432,96,482,123,586,170,581,169,480,128,429,100,358,74,289,53"/>
+<area shape="rect" id="Node000008" href="$self__tuning__lam_8h.html" title="Self&#45;Tuning Lam annealing schedule." alt="" coords="240,98,418,126"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="236,48,299,89,294,90,235,53"/>
+<area shape="poly" id="edge10_Node000008_Node000003" title=" " alt="" coords="278,129,94,176,93,171,277,124"/>
+<area shape="poly" id="edge11_Node000008_Node000004" title=" " alt="" coords="297,126,184,171,182,166,292,127"/>
+<area shape="poly" id="edge12_Node000008_Node000006" title=" " alt="" coords="314,125,259,167,257,162,309,127"/>
+<area shape="poly" id="edge14_Node000008_Node000007" title=" " alt="" coords="389,124,586,173,581,174,388,129"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="287,174,371,201"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="331,124,331,160,327,156,327,128"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="395,174,458,201"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="347,124,400,165,395,164,346,129"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="482,174,574,201"/>
+<area shape="poly" id="edge13_Node000008_Node000011" title=" " alt="" coords="365,124,481,168,475,168,364,129"/>
+</map>

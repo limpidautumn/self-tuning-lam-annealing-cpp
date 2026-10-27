@@ -1,0 +1,14 @@
+<map id="stlam::ProblemBase" name="stlam::ProblemBase">
+<area shape="rect" id="Node000001" title="Base interface for user&#45;defined optimization problems." alt="" coords="5,118,158,146"/>
+<area shape="rect" id="Node000002" href="$classstlam_1_1CopyNeighborProblem.html" title=" " alt="" coords="207,5,419,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="117,107,205,60,238,49,233,52,207,65,120,111"/>
+<area shape="rect" id="Node000004" href="$classstlam_1_1DeltaNeighborProblem.html" title=" " alt="" coords="206,75,420,119"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="172,116,208,112,203,114,174,121"/>
+<area shape="rect" id="Node000005" href="$classstlam_1_1CopyNeighborProblem.html" title="CRTP helper for problems that use copy&#45;and&#45;restore neighbors." alt="" coords="207,144,419,189"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="172,143,209,150,204,151,173,148"/>
+<area shape="rect" id="Node000006" href="$classstlam_1_1DeltaNeighborProblem.html" title="CRTP helper for problems that use apply&#45;and&#45;undo neighbors." alt="" coords="206,213,420,258"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="119,152,207,199,238,213,233,213,205,203,118,157"/>
+<area shape="rect" id="Node000003" href="$classOneMax.html" title="OneMax problem using copy&#45;neighbor moves." alt="" coords="468,48,543,76"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="434,47,470,55,465,56,434,52"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="434,72,470,68,465,70,436,78"/>
+</map>

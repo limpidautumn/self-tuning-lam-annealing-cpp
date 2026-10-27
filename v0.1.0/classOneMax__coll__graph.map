@@ -1,0 +1,10 @@
+<map id="OneMax" name="OneMax">
+<area shape="rect" id="Node000001" title="OneMax problem using copy&#45;neighbor moves." alt="" coords="192,174,268,201"/>
+<area shape="rect" id="Node000002" href="$classstlam_1_1CopyNeighborProblem.html" title=" " alt="" coords="5,81,218,126"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,132,214,173,208,173,154,137"/>
+<area shape="rect" id="Node000003" href="$classstlam_1_1ProblemBase.html" title="Base interface for user&#45;defined optimization problems." alt="" coords="154,5,306,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="197,44,145,82,141,78,201,40"/>
+<area shape="rect" id="Node000004" href="$classstlam_1_1DeltaNeighborProblem.html" title=" " alt="" coords="242,81,456,126"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="262,39,320,80,315,81,261,45"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="308,134,250,175,248,171,303,135"/>
+</map>

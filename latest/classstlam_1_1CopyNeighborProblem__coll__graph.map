@@ -1,0 +1,5 @@
+<map id="stlam::CopyNeighborProblem&lt; Derived &gt;" name="stlam::CopyNeighborProblem&lt; Derived &gt;">
+<area shape="rect" id="Node000001" title="CRTP helper for problems that use copy&#45;and&#45;restore neighbors." alt="" coords="5,81,218,126"/>
+<area shape="rect" id="Node000002" href="$classstlam_1_1ProblemBase.html" title="Base interface for user&#45;defined optimization problems." alt="" coords="35,5,188,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="113,47,114,81,109,79,110,51"/>
+</map>
